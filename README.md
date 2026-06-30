@@ -12,7 +12,7 @@ library encoder. Decoding is the unmodified standard library implementation.
 
 Throughput of `Encode` versus the standard library, by input size.
 
-`amd64` — Intel Core i7-1185G7:
+`amd64` - Intel Core i7-1185G7:
 
 | size    | stdlib    | SSSE3      | AVX2                   |
 |---------|-----------|------------|------------------------|
@@ -20,7 +20,7 @@ Throughput of `Encode` versus the standard library, by input size.
 | 1 KiB   | 1473 MB/s | 9177 MB/s  | 13324 MB/s             |
 | 300 KiB | 1495 MB/s | 10277 MB/s | 17094 MB/s (**11.4×**) |
 
-`arm64` — Raspberry Pi 5 (Cortex-A76):
+`arm64` - Raspberry Pi 5 (Cortex-A76):
 
 | size    | stdlib   | NEON                 |
 |---------|----------|----------------------|
