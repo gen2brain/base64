@@ -8,11 +8,11 @@ GLOBL ·clearHiMask(SB),RODATA,$16
 DATA ·clearHiMask(SB)/8,$0x3f3f3f3f3f3f3f3f
 DATA ·clearHiMask+8(SB)/8,$0x3f3f3f3f3f3f3f3f
 
-//func neonEncode(table *[64]byte, dst, src *[]byte, count int)
+//func neonEncode(table *[64]byte, dst, src *byte, count int)
 TEXT ·neonEncode(SB),NOSPLIT,$0
-	MOVD	lookup_base+0(FP), R0
-	MOVD	dst_base+8(FP), R1
-	MOVD	src_base+16(FP), R2
+	MOVD	table+0(FP), R0
+	MOVD	dst+8(FP), R1
+	MOVD	src+16(FP), R2
 	MOVD	count+24(FP), R3
 	MOVD	$·clearHiMask(SB), R4
 	VLD1	(R0), [V20.B16, V21.B16, V22.B16, V23.B16]
