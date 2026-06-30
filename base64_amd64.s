@@ -154,3 +154,74 @@ finish:
 	MOVQ SI, si+80(FP)
 
 	RET
+
+// func encode24ByteGroups(lookup []int8, dst, src []byte) (di int, si int)
+//
+// AVX2 variant of encode12ByteGroups: the same SSSE3 algorithm run lane-local
+// on both 128-bit lanes at once (24 src bytes in, 32 dst out per iteration),
+// with the same 16-byte constants broadcast to both lanes.
+TEXT ·encode24ByteGroups(SB), NOSPLIT, $0-88
+	NO_LOCAL_POINTERS
+
+	XORQ SI, SI
+	XORQ DI, DI
+
+	TESTB $1, ·hasAVX2(SB)
+	JZ    finish24
+
+	MOVQ src_len+56(FP), R10
+	MOVQ src_base+48(FP), R8
+	MOVQ dst_base+24(FP), R9
+	MOVQ lookup_base+0(FP), R12
+
+	VBROADCASTI128 bShuffleMask<>+0(SB), Y8
+	VBROADCASTI128 bAAndCMask<>+0(SB), Y9
+	VBROADCASTI128 bAAndCShift<>+0(SB), Y10
+	VBROADCASTI128 bDAndBMask<>+0(SB), Y11
+	VBROADCASTI128 bDAndBShift<>+0(SB), Y12
+	VBROADCASTI128 bSub51Mask<>+0(SB), Y13
+	VBROADCASTI128 bCmp26Mask<>+0(SB), Y14
+	VBROADCASTI128 (R12), Y6
+
+read24write32:
+	LEAQ 24(SI), AX
+	CMPQ AX, R10
+	JGT  done24
+
+	// Low lane src[0:16] (0:12 used); high lane src[12:24] via an 8+4 load
+	// so we never read past the buffer.
+	VMOVDQU     (R8)(SI*1), X0
+	VMOVQ       12(R8)(SI*1), X1
+	MOVL        20(R8)(SI*1), AX
+	VPINSRD     $2, AX, X1, X1
+	VINSERTI128 $1, X1, Y0, Y0
+
+	VPSHUFB Y8, Y0, Y0
+
+	VPAND    Y9, Y0, Y1
+	VPAND    Y11, Y0, Y2
+	VPMULHUW Y10, Y1, Y1
+	VPMULLW  Y12, Y2, Y2
+	VPOR     Y2, Y1, Y0
+
+	VPSUBUSB Y13, Y0, Y1
+	VPCMPGTB Y14, Y0, Y3
+	VPSUBSB  Y3, Y1, Y1
+
+	VPSHUFB Y1, Y6, Y7
+	VPADDSB Y7, Y0, Y0
+
+	VMOVDQU Y0, (R9)(DI*1)
+
+	ADDQ $32, DI
+	ADDQ $24, SI
+	JMP  read24write32
+
+done24:
+	VZEROUPPER
+
+finish24:
+	MOVQ DI, di+72(FP)
+	MOVQ SI, si+80(FP)
+
+	RET

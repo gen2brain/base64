@@ -14,3 +14,12 @@ func TestEncodeAccelerated(t *testing.T) {
 		t.Errorf("encodeAccelerated expected to return (0,0) when dst is too small.  Got (%d %d)", si, di)
 	}
 }
+
+// TestEncodeSSSE3Fallback covers the SSSE3 path by disabling AVX2.
+func TestEncodeSSSE3Fallback(t *testing.T) {
+	saved := hasAVX2
+	hasAVX2 = false
+	defer func() { hasAVX2 = saved }()
+
+	TestEncodeMatchesStdlib(t)
+}

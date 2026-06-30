@@ -8,8 +8,11 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
-// go:noescape
+//go:noescape
 func encode12ByteGroups(lookup []int8, dst, src []byte) (di int, si int)
+
+//go:noescape
+func encode24ByteGroups(lookup []int8, dst, src []byte) (di int, si int)
 
 var lookupStd = []int8{
 	65, 71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 0, 0,
@@ -20,6 +23,8 @@ var lookupURL = []int8{
 }
 
 var hasSSSE3 = cpu.X86.HasSSSE3
+
+var hasAVX2 = cpu.X86.HasAVX2
 
 func encodeAccelerated(enc *Encoding, dst, src []byte) (int, int) {
 	// If the source slice is less than 12 bytes fallback to the standard
@@ -41,7 +46,16 @@ func encodeAccelerated(enc *Encoding, dst, src []byte) (int, int) {
 		return 0, 0
 	}
 
-	return encode12ByteGroups(enc.accEncode, dst, src)
+	// AVX2 does the 24-byte groups, SSSE3 a possible trailing 12-byte group,
+	// the go encoder the rest. encode12ByteGroups loops once, so guard >= 12.
+	di, si := encode24ByteGroups(enc.accEncode, dst, src)
+	if len(src)-si >= 12 {
+		d, s := encode12ByteGroups(enc.accEncode, dst[di:], src[si:])
+		di += d
+		si += s
+	}
+
+	return di, si
 }
 
 func accelerateEncodeMap(encoder string) []int8 {
