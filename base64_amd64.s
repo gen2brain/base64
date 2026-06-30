@@ -225,3 +225,54 @@ finish24:
 	MOVQ SI, si+80(FP)
 
 	RET
+
+// func cpuidSSSE3() bool
+//
+// SSSE3 is reported by CPUID function 1, ECX bit 9.
+TEXT ·cpuidSSSE3(SB), NOSPLIT, $0-1
+	MOVL $1, AX
+	MOVL $0, CX
+	CPUID
+	BTL  $9, CX
+	JNC  no_ssse3
+	MOVB $1, ret+0(FP)
+	RET
+
+no_ssse3:
+	MOVB $0, ret+0(FP)
+	RET
+
+// func cpuidAVX2() bool
+//
+// AVX2 requires CPUID function 7 (EBX bit 5), plus OSXSAVE (function 1, ECX bit
+// 27) and XCR0 bits 1 and 2 set, so the OS preserves the YMM registers.
+TEXT ·cpuidAVX2(SB), NOSPLIT, $0-1
+	MOVL $0, AX
+	CPUID
+	CMPL AX, $7
+	JL   no_avx2
+
+	MOVL $1, AX
+	MOVL $0, CX
+	CPUID
+	BTL  $27, CX
+	JNC  no_avx2
+
+	MOVL  $0, CX
+	XGETBV
+	ANDL  $6, AX
+	CMPL  AX, $6
+	JNE   no_avx2
+
+	MOVL $7, AX
+	MOVL $0, CX
+	CPUID
+	BTL  $5, BX
+	JNC  no_avx2
+
+	MOVB $1, ret+0(FP)
+	RET
+
+no_avx2:
+	MOVB $0, ret+0(FP)
+	RET

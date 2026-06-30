@@ -7,6 +7,7 @@ SIMD-accelerated drop-in replacement for the standard library `encoding/base64`.
 The encode path is vectorized with **AVX2/SSSE3** on `amd64` and **NEON** on
 `arm64`, selected at runtime; other architectures fall back to the standard
 library encoder. Decoding is the unmodified standard library implementation.
+No external dependencies.
 
 ### Performance
 
